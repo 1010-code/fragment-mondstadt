@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>碎片 · 蒙德的一日</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { width:100%; height:100%; overflow:hidden; }
+  body { background:#000; color:#e8f1ff; font-family:"PingFang SC","Microsoft YaHei","Noto Sans CJK SC",sans-serif;
+         user-select:none; cursor:default; }
+
+  /* ============ 星空（状态0） ============ */
+  #bg-stars { position:fixed; inset:0; z-index:3; transition:opacity .8s ease; }
+  #bg-stars.gone { opacity:0; pointer-events:none; }
+  .star { position:absolute; border-radius:50%; background:#fff;
+          box-shadow:0 0 6px rgba(255,255,255,.85); animation:twinkle 1.5s ease-in-out forwards; }
+  @keyframes twinkle { 0%{opacity:0; transform:scale(.6);} 30%{opacity:.6; transform:scale(1);} 100%{opacity:0; transform:scale(.7);} }
+
+  /* ============ 场景 ============ */
+  #scene { position:fixed; inset:0; z-index:2; opacity:0; transition:opacity .9s ease; }
+  #scene.visible { opacity:1; }
+  #ground { position:absolute; left:0; right:0; top:70%; height:30vh;
+            background:linear-gradient(to bottom, rgba(25,36,58,.0), rgba(8,14,26,.55)); }
+  #road { position:absolute; left:0; right:0; top:70%; height:0; border-top:2px solid rgba(150,185,235,.55);
+          box-shadow:0 0 14px rgba(120,175,255,.35); }
+
+  /* ============ 行走小人（状态1） ============ */
+  #person-wrap { position:absolute; left:50%; top:70%; transform:translate(-50%,-100%); z-index:6; cursor:pointer; }
+  #person-shadow { position:absolute; left:50%; bottom:-9px; width:74px; height:10px; transform:translateX(-50%);
+                   border-radius:50%; background:radial-gradient(closest-side, rgba(0,0,0,.8), transparent 70%); filter:blur(2px); }
+  #person { position:relative; width:60px; height:104px; animation:bob .55s ease-in-out infinite alternate; }
+  @keyframes bob { from{ transform:translateY(0);} to{ transform:translateY(-3px);} }
+
+  .p-head { position:absolute; top:0; left:50%; width:26px; height:26px; margin-left:-13px; border-radius:50%;
+            background:linear-gradient(180deg,#ffe3c4,#f0bd8f); border:2px solid #4a3626;
+            box-shadow:inset -3px -3px 4px rgba(0,0,0,.12); }
+  .p-hair { position:absolute; top:-2px; left:50%; width:28px; height:12px; margin-left:-14px;
+            border-radius:10px 10px 4px 4px; background:#3d2b20; }
+  .p-torso { position:absolute; top:24px; left:50%; width:28px; height:30px; margin-left:-14px;
+             border-radius:9px 9px 6px 6px; background:linear-gradient(180deg,#4a7bb8,#3a6398);
+             box-shadow:inset 0 -3px 4px rgba(0,0,0,.25); }
+  .p-arm { position:absolute; top:27px; width:9px; height:26px; border-radius:6px;
+           background:linear-gradient(180deg,#4a7bb8,#35608f); transform-origin:top center; }
+  .p-arm.left { left:5px; animation:swingL .55s ease-in-out infinite alternate; }
+  .p-arm.right { right:5px; animation:swingR .55s ease-in-out infinite alternate; }
+  .p-leg { position:absolute; top:52px; width:11px; height:30px; border-radius:6px;
+           background:linear-gradient(180deg,#2e3440,#1f242e); transform-origin:top center; }
+  .p-leg.left { left:13px; animation:swingL .55s ease-in-out infinite alternate; }
+  .p-leg.right { right:13px; animation:swingR .55s ease-in-out infinite alternate; }
+  @keyframes swingL { from{ transform:rotate(-24deg);} to{ transform:rotate(22deg);} }
+  @keyframes swingR { from{ transform:rotate(22deg);} to{ transform:rotate(-24deg);} }
+
+  /* 第二个动作：挥剑（状态2） */
+  #person.attacking { animation:none; transform:translateY(0); }
+  #person.attacking .p-leg.left { animation:none; transform:rotate(34deg) translateY(1px); }
+  #person.attacking .p-leg.right { animation:none; transform:rotate(-30deg) translateY(1px); }
+  #person.attacking .p-arm.left { animation:none; transform:rotate(36deg); }
+  #person.attacking .p-arm.right { animation:none; transform:rotate(-150deg); }
+  .sword { position:absolute; top:12px; right:-10px; width:6px; height:58px; border-radius:3px;
+           transform-origin:bottom center; background:linear-gradient(180deg,#ffffff,#9fdcff 70%,#4f96ff);
+           box-shadow:0 0 10px rgba(150,220,255,.9); transform:rotate(-150deg); opacity:0; transition:opacity .25s; }
+  #person.attacking .sword { opacity:1; }
+  #burst { position:absolute; left:50%; top:-30px; transform:translate(-50%,-100%); font-size:110px; line-height:1;
+           opacity:0; pointer-events:none; z-index:7; }
+  #burst.pop { animation:burstPop .85s ease-out forwards; }
+  @keyframes burstPop { 0%{opacity:0; transform:translate(-50%,-100%) scale(.2);}
+                        25%{opacity:1; transform:translate(-50%,-100%) scale(1.25);}
+                        55%{opacity:.95; transform:translate(-50%,-100%) scale(.92);}
+                        100%{opacity:0; transform:translate(-50%,-100%) scale(1.12);} }
+  #flash { position:fixed; inset:0; background:rgba(235,248,255,.95); opacity:0; pointer-events:none; z-index:40; }
+  #flash.on { animation:flashFade .38s ease-out forwards; }
+  @keyframes flashFade { 0%{opacity:.9;} 100%{opacity:0;} }
+
+  /* ============ 碎片（状态2/3/4） ============ */
+  #fragment-wrap { position:absolute; left:50%; top:50%; width:0; height:0; z-index:10; opacity:0; pointer-events:none; }
+  #fragment-wrap.visible { opacity:1; pointer-events:auto; }
+  #fragment-wrap.dropping { animation:fragDrop 1.15s cubic-bezier(.28,.55,.45,1) forwards; }
+  #fragment-wrap.dropping #fragment { animation:tremble 1.15s ease-out forwards; }
+  #fragment-wrap.landed #fragment { animation:floaty 2.8s ease-in-out infinite; }
+  @keyframes fragDrop { 0%{ transform:translateY(-76vh);} 100%{ transform:translateY(0);} }
+  @keyframes tremble {
+    0%{ transform:translate(0,0) rotate(0);}
+    10%{ transform:translate(-17px,0) rotate(-7deg);}
+    24%{ transform:translate(14px,0) rotate(6deg);}
+    38%{ transform:translate(-10px,0) rotate(-4deg);}
+    52%{ transform:translate(7px,0) rotate(3deg);}
+    66%{ transform:translate(-4px,0) rotate(-2deg);}
+    80%{ transform:translate(2px,0) rotate(1deg);}
+    100%{ transform:translate(0,0) rotate(0);}
+  }
+  @keyframes floaty { 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-7px);} }
+
+  #fragment { position:absolute; left:-32px; top:-32px; width:64px; height:64px;
+              background:linear-gradient(135deg,#c8f6ff 0%,#5cc9ff 30%,#2f7bff 68%,#143c9e 100%);
+              clip-path:polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+              box-shadow:0 0 26px rgba(90,185,255,.85), inset 0 0 14px rgba(255,255,255,.55); }
+  #fragment::after { content:''; position:absolute; inset:0; clip-path:inherit;
+             background:linear-gradient(115deg, transparent 32%, rgba(255,255,255,.75) 46%, rgba(255,255,255,.25) 54%, transparent 66%);
+             animation:shine 2.2s ease-in-out infinite; }
+  @keyframes shine { 0%{ transform:translateX(-90%);} 60%,100%{ transform:translateX(90%);} }
+  #fragment-glow { position:absolute; left:-70px; top:-70px; width:140px; height:140px; border-radius:50%;
+                   background:radial-gradient(circle, rgba(90,180,255,.35), transparent 65%);
+                   animation:glowPulse 2.4s ease-in-out infinite; }
+  @keyframes glowPulse { 0%,100%{ opacity:.5; transform:scale(.9);} 50%{ opacity:1; transform:scale(1.1);} }
+
+  #fragment-wrap.flying { opacity:1; pointer-events:none; animation:flyToPack .6s cubic-bezier(.42,0,.2,1) forwards; }
+  #fragment-wrap.flying #fragment { animation:none; }
+  #fragment-wrap.collected { opacity:0 !important; pointer-events:none; transition:opacity .25s; }
+  @keyframes flyToPack {
+    0%   { transform:translate(0,0) scale(1); }
+    45%  { transform:translate(26vw,-72vh) scale(.85); }
+    100% { transform:translate(47vw,-46vh) scale(.12); }
+  }
+
+  /* ============ 投影文字（状态3） ============ */
+  #light-beam { position:absolute; left:50%; top:50%; width:320px; height:360px; transform:translate(-50%,-84%); z-index:7;
+                pointer-events:none; background:radial-gradient(ellipse at bottom, rgba(130,200,255,.26), transparent 62%);
+                opacity:0; transition:opacity .6s ease; }
+  #light-beam.show { opacity:1; }
+  #projection { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:min(700px,88vw);
+                max-height:62vh; overflow-y:auto; z-index:9; opacity:0; transition:opacity .3s ease;
+                padding:30px 26px; text-align:center; cursor:default;
+                background:radial-gradient(closest-side, rgba(80,160,255,.13), transparent 72%);
+                scrollbar-width:thin; scrollbar-color:rgba(120,180,255,.4) transparent; }
+  #projection.show { opacity:1; }
+  .proj-p { font-size:clamp(14px,1.9vh,18px); line-height:2.05; letter-spacing:.05em; color:rgba(198,226,255,.94);
+            text-shadow:0 0 12px rgba(115,185,255,.95), 0 0 34px rgba(70,135,255,.55); filter:blur(.5px);
+            animation:textProject 1.15s ease-out both; }
+  .proj-p + .proj-p { margin-top:.9em; }
+  @keyframes textProject { 0%{ opacity:0; filter:blur(9px); transform:translateY(8px);}
+                           100%{ opacity:1; filter:blur(.5px); transform:translateY(0);} }
+
+  /* ============ 背包（状态4） ============ */
+  #backpack { position:fixed; top:18px; right:22px; font-size:46px; line-height:1; z-index:20; opacity:0;
+              transform:scale(.3); cursor:pointer; filter:drop-shadow(0 0 10px rgba(120,190,255,.8));
+              transition:opacity .35s ease, transform .35s cubic-bezier(.34,1.56,.64,1); }
+  #backpack.show { opacity:1; transform:scale(1); }
+  #backpack.flash { animation:packFlash .55s ease; }
+  @keyframes packFlash { 0%{ transform:scale(1);} 40%{ transform:scale(1.28) rotate(-8deg);
+                          filter:drop-shadow(0 0 30px rgba(150,220,255,1));} 100%{ transform:scale(1);} }
+  #pack-label { position:fixed; top:76px; right:22px; font-size:12px; letter-spacing:.2em; color:rgba(255,255,255,.5);
+                opacity:0; transition:opacity .4s ease; z-index:20; pointer-events:none; }
+  #pack-label.show { opacity:1; }
+
+  /* ============ 提示 / 提示条 ============ */
+  #hint { position:fixed; bottom:28px; left:50%; transform:translateX(-50%); z-index:30; font-size:14px;
+          letter-spacing:.28em; color:rgba(230,244,255,.6); text-shadow:0 0 12px rgba(120,185,255,.7);
+          opacity:0; transition:opacity .6s ease; pointer-events:none; white-space:nowrap; }
+  #hint.show { opacity:1; }
+  #toast { position:fixed; top:22%; left:50%; transform:translate(-50%,-50%); z-index:70; padding:12px 22px;
+           border-radius:30px; background:rgba(10,20,40,.85); border:1px solid rgba(130,190,255,.4);
+           color:#d9ecff; font-size:14px; letter-spacing:.12em; opacity:0; transition:opacity .3s ease;
+           pointer-events:none; white-space:nowrap; }
+  #toast.show { opacity:1; }
+
+  /* ============ 扩散光芒（状态0→1） ============ */
+  #reveal-glow { position:fixed; width:46vmin; height:46vmin; margin:-23vmin 0 0 -23vmin; border-radius:50%; z-index:5;
+                 opacity:0; pointer-events:none;
+                 background:radial-gradient(circle, rgba(255,255,255,.96) 0%, rgba(190,222,255,.65) 28%,
+                                            rgba(120,175,255,.3) 52%, transparent 72%); }
+  #reveal-glow.expand { animation:glowExpand 1.05s ease-out forwards; }
+  @keyframes glowExpand { 0%{ opacity:0; transform:scale(0);} 12%{ opacity:1;} 78%{ opacity:.55;} 100%{ opacity:0; transform:scale(85);} }
+
+  /* ============ 弹窗 ============ */
+  #modal { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:60;
+           background:rgba(2,6,14,.66); backdrop-filter:blur(4px); opacity:0; pointer-events:none; transition:opacity .28s ease; }
+  #modal.open { opacity:1; pointer-events:auto; }
+  .modal-card { position:relative; width:min(620px,92vw); max-height:76vh; overflow-y:auto; padding:34px 36px 30px;
+                background:linear-gradient(160deg, rgba(16,26,46,.95), rgba(8,14,30,.97));
+                border:1px solid rgba(120,185,255,.35); border-radius:18px;
+                box-shadow:0 0 70px rgba(80,150,255,.28), inset 0 0 40px rgba(90,160,255,.06);
+                transform:scale(.92); transition:transform .3s cubic-bezier(.34,1.56,.64,1);
+                scrollbar-width:thin; scrollbar-color:rgba(120,180,255,.4) transparent; }
+  #modal.open .modal-card { transform:scale(1); }
+  .modal-head { display:flex; align-items:center; gap:12px; margin-bottom:18px; }
+  .modal-gem { font-size:22px; filter:drop-shadow(0 0 8px rgba(120,200,255,.8)); }
+  .modal-title { font-size:17px; letter-spacing:.22em; color:#bfe0ff; }
+  .modal-close { position:absolute; top:14px; right:16px; width:32px; height:32px; border:none; border-radius:50%;
+                 background:rgba(120,180,255,.12); color:#cfe6ff; font-size:16px; line-height:1; cursor:pointer;
+                 transition:background .2s, transform .2s; }
+  .modal-close:hover { background:rgba(120,180,255,.3); transform:rotate(90deg); }
+  .modal-text p { font-size:15px; line-height:2; color:#dcecff; text-align:left; }
+  .modal-text p + p { margin-top:1em; }
+
+  @media (max-width:600px) {
+    .proj-p { line-height:1.9; }
+    .modal-card { padding:26px 20px 22px; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- 状态0：星空 -->
+  <div id="bg-stars"></div>
+
+  <!-- 扩散光芒（入场） -->
+  <div id="reveal-glow"></div>
+
+  <!-- 状态1-4：主场景 -->
+  <main id="scene">
+    <div id="ground"></div>
+    <div id="road"></div>
+
+    <!-- 行走小人 -->
+    <div id="person-wrap">
+      <div id="person-shadow"></div>
+      <div id="person">
+        <div class="p-hair"></div>
+        <div class="p-head"></div>
+        <div class="p-torso"></div>
+        <div class="p-arm left"></div>
+        <div class="p-arm right"></div>
+        <div class="p-leg left"></div>
+        <div class="p-leg right"></div>
+        <div class="sword"></div>
+      </div>
+      <div id="burst">💥</div>
+    </div>
+
+    <!-- 碎片 -->
+    <div id="fragment-wrap">
+      <div id="fragment-glow"></div>
+      <div id="fragment"></div>
+    </div>
+
+    <!-- 投影光束与文字 -->
+    <div id="light-beam"></div>
+    <div id="projection"></div>
+  </main>
+
+  <!-- 白闪 -->
+  <div id="flash"></div>
+
+  <!-- 背包 -->
+  <div id="backpack">🎒</div>
+  <div id="pack-label">背包</div>
+
+  <!-- 提示 -->
+  <div id="hint"></div>
+  <div id="toast"></div>
+
+  <!-- 弹窗 -->
+  <div id="modal">
+    <div class="modal-card">
+      <button class="modal-close" title="关闭">✕</button>
+      <div class="modal-head"><span class="modal-gem">💎</span><span class="modal-title">碎片 · 文字内容</span></div>
+      <div class="modal-text"></div>
+    </div>
+  </div>
+
+<script>
+"use strict";
+
+/* ============================================================
+ * 配置（素材替换入口）
+ * ============================================================ */
+const CONFIG = {
+  // 背景音乐（页面加载即尝试播放；浏览器策略要求至少一次用户交互后才允许出声）
+  MUSIC_SRC: "bgm.mp3",
+  // 碎片文字读取来源（按顺序尝试；均为“预留读取接口”，可自行替换）
+  TEXT_SOURCES: ["fragment.txt", "fragment.docx"],
+  // 玻璃碎裂音效：留空 = 使用 Web Audio 合成的占位碎裂声；
+  // 填入文件路径（如 "assets/glass.mp3"）则优先播放该音频
+  GLASS_SFX_SRC: "",
+  // 自定义素材（可替换 emoji / CSS 小人）：填入图片/GIF 路径即启用
+  WALK_IMG: "",     // 行走小人动图（状态1）
+  ACTION_IMG: "",   // 第二个动作动图（状态2）
+  BACKPACK_IMG: ""  // 背包图标（状态4）
+};
+
+/* 内置文字兜底（从 碎片文字1.docx 提取） */
+const FALLBACK_PARAS = ["今天晚上，并不太好的月光。", "伊凛坐在城市里最高的楼顶，看身下闪烁的霓虹，看彻夜长明的高楼，看猎猎夜风带起她的围巾与长发。", "在城市的顶端，所有声音都变得虚无缥缈，月色亦无声地淌过。", "直至手腕处的振动声打破了这片梦幻般的宁静。", "伊凛抬起手腕，终端上显示出新的委托。", "主观上她并不想接委托，但是……她好像还没吃晚餐。", "只需要点击“接取”的选项，信息就会被自动同步到她的脑机接口环中。伊凛轻碰两下太阳穴，全息光屏便出现在她眼前，象征着委托地点的红色标志就在她身下不远处闪烁。\n", "伊凛降落在某个巷口。", "昏暗又狭小的通道，只有一盏破旧的街灯奄奄一息地放出微弱的光。周围也安静地过分，车辆飞驰而过的声响，人与人聊天的声音——一切的喧嚣在这里都不复存在，只有眼前黑洞洞的巷口，静默地伫立着。", "透过全息光屏，巷口闪着刺目的红光，扎得人眼睛疼。伊凛关掉了显示屏，径直走了进去。", "黑暗迅速吞没了她的背影。", "一进入巷内，周围的气氛就陡然变化：那盏忽闪忽闪的路灯啪的一声熄灭，浓重得恍若要化作实体的黑暗，吞没了夜色，一点点地向猎物逼近。整座巷子此刻像是变成了一片沼泽，而伊凛就站在沼泽中央，正迅速地下陷，漆黑的淤泥就要没过她的发顶。", "伊凛表情却没什么变化，只是回手掏出长剑。光剑显形的刹那，周围浓重如实质的黑暗竟被生生划开一道口子，像是沼泽的污泥被硬生生推开。紧接着她握剑横劈，荡开一片剑光，身边的黑暗被瞬间切开。", "这并不是修辞，眼前的“黑暗”实质上正是怨灵的实体化。怨灵，顾名思义，集怨气而生之灵，形态各异，构造各异，产生的原因各异，导致其想要达成的目的也各不相同。有的想要完成遗愿，有的想要报复仇人，有的就像巷子里这只一样，想要吞噬一切。", "伊凛的剑并不止歇，只是迅速地向几个角落刺去。这浓重的黑暗对她似乎没有任何影响，她的动作依旧迅捷而精准。几下试探，便让她找到了怨灵“核心”所在。", "所有生物皆有弱点，怨灵也不例外。", "伊凛毫不迟疑，长剑递出，核心——一颗黑色的小珠子被精准贯穿。随着核心的碎裂，周围的黑暗也如潮水般迅速退去，显露出原本的夜色来。实质化的黑暗不断地消散、缩小，最终化作小小的一滩，和破裂的珠子一起落在地上。核心四分五裂地躺在中央——这就是怨灵的本体。", "伊凛低头看它，它看起来吞噬了不少生物才能够达到如今的程度。可是如今，它却只有那么一小片，仿佛只是一滩水渍，甚至就连那滩小小的黑暗也在不断消失。", "仅剩的黑暗沸腾了。", "一个嘶哑的声音忽然出现：“你凭什么！？你知道我——”", "充满阴毒与怨恨的声音戛然而止。伊凛的光剑再度贯穿了那片黑暗。", "作为经验老道的怨灵猎手，伊凛用不存在的尾巴都能想出来它要说些什么，但是——\n“我不在乎。”\n", "任务完成，少女收剑入鞘，双手交握举过头顶，身体后仰，伸了个懒腰。她一边思考着今天晚餐吃什么，一边离开了小巷。", "在她身后，那盏破旧的街灯一闪一闪地重新亮了起来。"];
+let FRAGMENT_TEXT = FALLBACK_PARAS.join("\n\n");
+
+/* ============================================================
+ * 状态机
+ * ============================================================ */
+const State = { BOOT:0, ROAD:1, BURST:2, PROJECT:3, PACK:4 };
+let state = State.BOOT;
+let busy = false;            // 防抖：状态切换进行中
+let fragmentLanded = false;
+let modalOpen = false;
+
+const $ = (id) => document.getElementById(id);
+const starsEl = $("bg-stars"), sceneEl = $("scene"), personEl = $("person"),
+      personWrap = $("person-wrap"), burstEl = $("burst"), flashEl = $("flash"),
+      fragWrap = $("fragment-wrap"), projectionEl = $("projection"),
+      beamEl = $("light-beam"), backpackEl = $("backpack"), packLabel = $("pack-label"),
+      hintEl = $("hint"), toastEl = $("toast"), modalEl = $("modal"),
+      modalText = modalEl.querySelector(".modal-text"), revealGlow = $("reveal-glow");
+
+function syncDbg(){ document.body.dataset.state = state; document.body.dataset.busy = busy ? "1" : "0"; }
+
+/* ============================================================
+ * 素材占位替换（CONFIG 中填入路径即生效）
+ * ============================================================ */
+function applyConfig(){
+  if (CONFIG.WALK_IMG){
+    const p = $("person");
+    p.innerHTML = '<img src="' + CONFIG.WALK_IMG + '" alt="行走小人" style="width:100%;height:100%;object-fit:contain;position:absolute;left:0;top:0;">';
+    p.classList.remove("attacking");
+  }
+  if (CONFIG.ACTION_IMG){
+    const img = document.createElement("img");
+    img.id = "action-img";
+    img.src = CONFIG.ACTION_IMG;
+    img.alt = "第二个动作";
+    img.style.cssText = "position:absolute;left:50%;top:-30px;transform:translate(-50%,-100%);opacity:0;pointer-events:none;width:130px;transition:opacity .25s;";
+    $("person-wrap").appendChild(img);
+    const style = document.createElement("style");
+    style.textContent = "#person-wrap.attacking #action-img{opacity:1;}";
+    document.head.appendChild(style);
+  }
+  if (CONFIG.BACKPACK_IMG){
+    backpackEl.innerHTML = '<img src="' + CONFIG.BACKPACK_IMG + '" alt="背包" style="width:52px;height:52px;object-fit:contain;display:block;filter:drop-shadow(0 0 10px rgba(120,190,255,.8));">';
+  }
+}
+
+/* ============================================================
+ * 背景音乐（循环）
+ * ============================================================ */
+const bgm = new Audio(CONFIG.MUSIC_SRC);
+bgm.loop = true;
+bgm.preload = "auto";
+bgm.id = "bgm";
+document.body.appendChild(bgm); // 挂载到 DOM，便于调试与预加载
+let musicFirstPlay = true;
+
+function ensureMusic(){
+  const p = bgm.play();
+  if (p && p.catch) p.catch(()=>{ document.body.dataset.music = "blocked"; });
+  p && p.then(()=>{
+    document.body.dataset.music = "playing";
+    if (musicFirstPlay){
+      musicFirstPlay = false;
+      bgm.volume = 0;
+      const fade = setInterval(()=>{
+        bgm.volume = Math.min(0.8, bgm.volume + 0.05);
+        if (bgm.volume >= 0.8) clearInterval(fade);
+      }, 130);
+    }
+  }).catch(()=>{});
+}
+
+/* ============================================================
+ * Web Audio（碎裂音效占位 / 音频上下文）
+ * ============================================================ */
+let actx = null;
+function getAudioCtx(){
+  if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+  if (actx.state === "suspended") actx.resume();
+  return actx;
+}
+
+function playGlassBreak(){
+  if (CONFIG.GLASS_SFX_SRC){
+    try {
+      const a = new Audio(CONFIG.GLASS_SFX_SRC);
+      a.volume = 0.9; a.play().catch(()=>{});
+      return;
+    } catch(e){ /* 回退到合成音效 */ }
+  }
+  try {
+    const ctx = getAudioCtx();
+    const dur = 0.9, rate = ctx.sampleRate;
+    const buf = ctx.createBuffer(1, Math.floor(rate*dur), rate);
+    const data = buf.getChannelData(0);
+    for (let i=0;i<data.length;i++){
+      const t = i/data.length;
+      data[i] = (Math.random()*2-1) * Math.pow(1-t, 2.6) * (0.45 + 0.55*Math.random());
+    }
+    const src = ctx.createBufferSource(); src.buffer = buf;
+    const bp = ctx.createBiquadFilter(); bp.type="bandpass"; bp.frequency.value=3800; bp.Q.value=0.7;
+    const hp = ctx.createBiquadFilter(); hp.type="highpass"; hp.frequency.value=1600;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.9, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+dur);
+    src.connect(bp); bp.connect(hp); hp.connect(gain); gain.connect(ctx.destination);
+    src.start();
+    [5200,7200,4300].forEach((f,i)=>{
+      const o = ctx.createOscillator(); o.type="sine"; o.frequency.value = f*(1+Math.random()*0.2);
+      const g = ctx.createGain(); const t0 = ctx.currentTime + i*0.03;
+      g.gain.setValueAtTime(0.001, t0);
+      g.gain.exponentialRampToValueAtTime(0.22, t0+0.006);
+      g.gain.exponentialRampToValueAtTime(0.001, t0+0.13);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(t0); o.stop(t0+0.16);
+    });
+  } catch(e){ /* 忽略音频错误 */ }
+}
+
+/* ============================================================
+ * 文字读取接口（预留）：txt / docx / 拖拽 / 内置兜底
+ * ============================================================ */
+function decodeEntities(s){
+  return s.replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&quot;/g,'"')
+          .replace(/&apos;/g,"'").replace(/&amp;/g,"&")
+          .replace(/&#(\d+);/g,(m,n)=>String.fromCodePoint(+n))
+          .replace(/&#x([0-9a-f]+);/gi,(m,n)=>String.fromCodePoint(parseInt(n,16)));
+}
+
+async function inflateRaw(bytes){
+  if (window.pako) return new Uint8Array(pako.inflateRaw(bytes));
+  if (typeof DecompressionStream !== "undefined"){
+    const ds = new DecompressionStream("deflate-raw");
+    const stream = new Blob([bytes]).stream().pipeThrough(ds);
+    return new Uint8Array(await new Response(stream).arrayBuffer());
+  }
+  throw new Error("当前浏览器不支持 deflate 解压");
+}
+
+async function readDocxText(arrayBuffer){
+  const u8 = new Uint8Array(arrayBuffer);
+  const dv = new DataView(arrayBuffer);
+  const dec = new TextDecoder("utf-8");
+
+  // 定位 ZIP 中央目录（EOCD）
+  let eocd = -1;
+  const min = Math.max(0, u8.length - 65557);
+  for (let i = u8.length - 22; i >= min; i--){
+    if (dv.getUint32(i, true) === 0x06054b50){ eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error("不是有效的 docx(zip) 文件");
+  const cdCount = dv.getUint16(eocd + 10, true);
+  const cdOffset = dv.getUint32(eocd + 16, true);
+
+  let target = null, p = cdOffset;
+  for (let i = 0; i < cdCount; i++){
+    if (dv.getUint32(p, true) !== 0x02014b50) break;
+    const method = dv.getUint16(p + 10, true);
+    const compSize = dv.getUint32(p + 20, true);
+    const nameLen = dv.getUint16(p + 28, true);
+    const extraLen = dv.getUint16(p + 30, true);
+    const commentLen = dv.getUint16(p + 32, true);
+    const localOffset = dv.getUint32(p + 42, true);
+    const name = dec.decode(u8.subarray(p + 46, p + 46 + nameLen));
+    if (name === "word/document.xml"){
+      target = { localOffset, method, compSize }; break;
+    }
+    p += 46 + nameLen + extraLen + commentLen;
+  }
+  if (!target) throw new Error("word/document.xml 不存在");
+
+  const lp = target.localOffset;
+  if (dv.getUint32(lp, true) !== 0x04034b50) throw new Error("zip 本地头损坏");
+  const lNameLen = dv.getUint16(lp + 26, true);
+  const lExtraLen = dv.getUint16(lp + 28, true);
+  const dataStart = lp + 30 + lNameLen + lExtraLen;
+  const comp = u8.subarray(dataStart, dataStart + target.compSize);
+
+  let xmlBytes;
+  if (target.method === 0) xmlBytes = comp;
+  else if (target.method === 8) xmlBytes = await inflateRaw(comp);
+  else throw new Error("不支持的压缩方式: " + target.method);
+  const xml = dec.decode(xmlBytes);
+
+  const paras = [];
+  const pRe = /<w:p[ >][\s\S]*?<\/w:p>|<w:p\/>/g;
+  const tRe = /<w:t(?: [^>]*)?>([\s\S]*?)<\/w:t>|<w:tab[^>]*\/>|<w:br[^>]*\/>|<w:cr[^>]*\/>/g;
+  let m;
+  while ((m = pRe.exec(xml)) !== null){
+    const block = m[0];
+    let line = ""; let t; tRe.lastIndex = 0;
+    while ((t = tRe.exec(block)) !== null){
+      if (t[0].startsWith("<w:tab")) line += "\t";
+      else if (t[0].startsWith("<w:br") || t[0].startsWith("<w:cr")) line += "\n";
+      else line += decodeEntities(t[1] || "");
+    }
+    paras.push(line);
+  }
+  const out = paras.filter(s => s.trim() !== "").join("\n");
+  if (!out) throw new Error("docx 中没有文字");
+  return out;
+}
+
+async function loadFragmentText(){
+  // 1) 优先尝试 txt
+  for (const src of CONFIG.TEXT_SOURCES){
+    try {
+      const r = await fetch(src, { cache:"no-store" });
+      if (r.ok){
+        const text = src.endsWith(".docx")
+          ? await readDocxText(await r.arrayBuffer())
+          : (await r.text()).trim();
+        if (text){ document.body.dataset.textSource = src; return text; }
+      }
+    } catch(e){ /* 继续下一个来源 */ }
+  }
+  // 2) 兜底：内置文字
+  document.body.dataset.textSource = "fallback";
+  return FRAGMENT_TEXT;
+}
+
+/* 对外暴露的读取接口 */
+window.FragmentReader = {
+  load: loadFragmentText,
+  readDocx: readDocxText,
+  getText: () => FRAGMENT_TEXT,
+  setText(t){ FRAGMENT_TEXT = t; renderProjection(t); renderModal(t); },
+  reload: async function(){ const t = await loadFragmentText(); FRAGMENT_TEXT = t; renderProjection(t); renderModal(t); toast("已重新读取文字"); }
+};
+
+function splitParas(text){ return text.split(/\r?\n+/).map(s=>s.trim()).filter(Boolean); }
+
+function renderProjection(text){
+  const paras = splitParas(text);
+  projectionEl.replaceChildren(...paras.map(p=>{
+    const el = document.createElement("p");
+    el.className = "proj-p";
+    el.textContent = p;
+    return el;
+  }));
+  projectionEl.scrollTop = 0;
+}
+function renderModal(text){
+  const paras = splitParas(text);
+  modalText.replaceChildren(...paras.map(p=>{
+    const el = document.createElement("p");
+    el.textContent = p;
+    return el;
+  }));
+  modalEl.querySelector(".modal-card").scrollTop = 0;
+}
+
+/* ============================================================
+ * 星空（状态0）
+ * ============================================================ */
+let starTimer = null;
+function spawnStar(){
+  if (state !== State.BOOT) return;
+  const s = document.createElement("div");
+  s.className = "star";
+  s.style.left = (Math.random()*100) + "vw";
+  s.style.top  = (Math.random()*100) + "vh";
+  const size = 1.5 + Math.random()*2.5;
+  s.style.width = s.style.height = size + "px";
+  if (Math.random() < 0.35){ s.style.background = "#cfe4ff"; s.style.boxShadow = "0 0 8px rgba(160,210,255,.9)"; }
+  starsEl.appendChild(s);
+  s.addEventListener("animationend", ()=>s.remove());
+  starTimer = setTimeout(spawnStar, 1000 + Math.random()*2000);
+}
+function stopStars(){
+  if (starTimer) clearTimeout(starTimer);
+  starsEl.classList.add("gone");
+}
+
+/* ============================================================
+ * 提示
+ * ============================================================ */
+let hintTimer = null;
+function showHint(text, ms){
+  if (hintTimer) clearTimeout(hintTimer);
+  hintEl.textContent = text;
+  hintEl.classList.add("show");
+  if (ms !== 0) hintTimer = setTimeout(()=>hintEl.classList.remove("show"), ms || 2600);
+}
+function toast(text){
+  toastEl.textContent = text;
+  toastEl.classList.add("show");
+  setTimeout(()=>toastEl.classList.remove("show"), 2200);
+}
+
+/* ============================================================
+ * 状态切换
+ * ============================================================ */
+function enterRoad(){
+  if (busy) return;
+  busy = true;
+  ensureMusic(); getAudioCtx();
+
+  // 从“小人位置”亮起圆形光芒并扩散
+  revealGlow.style.left = "50%";
+  revealGlow.style.top  = "calc(70% - 5vh)";
+  revealGlow.classList.add("expand");
+  sceneEl.classList.add("visible");
+  stopStars();
+  setTimeout(()=>{ revealGlow.classList.remove("expand"); }, 1250);
+
+  setTimeout(()=>{ state = State.ROAD; busy = false; syncDbg(); showHint("点击小人"); }, 1150);
+}
+
+function enterBurst(){
+  if (busy || state !== State.ROAD) return;
+  busy = true; state = State.BURST; fragmentLanded = false; syncDbg();
+
+  // 1) 小人切换为第二个动作（挥剑）
+  personEl.classList.add("attacking");
+  personWrap.classList.add("attacking");
+
+  // 白闪 + 💥 特效
+  flashEl.classList.remove("on"); void flashEl.offsetWidth; flashEl.classList.add("on");
+  burstEl.classList.remove("pop"); void burstEl.offsetWidth; burstEl.classList.add("pop");
+
+  // 2) 玻璃碎裂音效（与动作切换同时）
+  setTimeout(()=>playGlassBreak(), 60);
+
+  // 3) 碎片出现并掉落（震颤）
+  setTimeout(()=>{
+    fragWrap.classList.remove("landed","flying","collected");
+    fragWrap.classList.add("visible","dropping");
+  }, 320);
+
+  // 落地：静止在屏幕中央，可点击
+  setTimeout(()=>{
+    fragWrap.classList.remove("dropping");
+    fragWrap.classList.add("landed");
+    fragmentLanded = true;
+    busy = false;
+    syncDbg();
+    showHint("点击碎片");
+  }, 1600);
+}
+
+function enterProject(){
+  if (busy || state !== State.BURST || !fragmentLanded) return;
+  busy = true; state = State.PROJECT; syncDbg();
+
+  loadFragmentText().then(text => {
+    FRAGMENT_TEXT = text;
+    renderProjection(text);
+    projectionEl.classList.add("show");
+    beamEl.classList.add("show");
+  });
+  showHint("点击空白处收下碎片");
+  setTimeout(()=>{ busy = false; }, 750);
+}
+
+function enterPack(){
+  if (busy || state !== State.PROJECT) return;
+  busy = true; state = State.PACK; syncDbg();
+
+  // 1) 文字淡出（0.3s）
+  projectionEl.classList.remove("show");
+  beamEl.classList.remove("show");
+
+  // 2) 碎片弧线飞向右上角（0.6s, ease-in-out），背包出现
+  setTimeout(()=>{
+    backpackEl.classList.add("show");
+    packLabel.classList.add("show");
+    fragWrap.classList.remove("landed");
+    fragWrap.classList.add("flying");
+
+    // 3) 碎片缩小消失，背包闪烁
+    setTimeout(()=>{
+      fragWrap.classList.add("collected");
+      backpackEl.classList.remove("flash"); void backpackEl.offsetWidth;
+      backpackEl.classList.add("flash");
+      setTimeout(()=>{ backpackEl.classList.remove("flash"); }, 650);
+    }, 600);
+  }, 320);
+
+  setTimeout(()=>{ busy = false; showHint("点击背包查看"); }, 1400);
+}
+
+/* ============================================================
+ * 弹窗
+ * ============================================================ */
+function openModal(){
+  if (modalOpen) return;
+  modalOpen = true;
+  renderModal(FRAGMENT_TEXT);
+  modalEl.classList.add("open");
+}
+function closeModal(){
+  if (!modalOpen) return;
+  modalOpen = false;
+  modalEl.classList.remove("open");
+}
+
+/* ============================================================
+ * 全局交互（含防抖）
+ * ============================================================ */
+document.addEventListener("pointerdown", (e)=>{
+  ensureMusic(); // 任意首次交互都会启动音乐（满足浏览器自动播放策略）
+  if (modalOpen){
+    if (!e.target.closest(".modal-card")) closeModal();
+    return;
+  }
+  if (busy) return;
+  switch (state){
+    case State.BOOT:    enterRoad(); break;
+    case State.ROAD:    if (e.target.closest("#person-wrap")) enterBurst(); break;
+    case State.BURST:   if (fragmentLanded && e.target.closest("#fragment-wrap")) enterProject(); break;
+    case State.PROJECT: if (!e.target.closest("#projection")) enterPack(); break;
+    case State.PACK:    if (e.target.closest("#backpack")) openModal(); break;
+  }
+});
+
+modalEl.querySelector(".modal-close").addEventListener("click", closeModal);
+window.addEventListener("keydown", (e)=>{ if (e.key === "Escape") closeModal(); });
+
+/* ============================================================
+ * 拖拽读取 docx / txt（预留读取接口之一）
+ * ============================================================ */
+["dragover","dragenter"].forEach(ev=>document.addEventListener(ev, e=>{ e.preventDefault(); }));
+document.addEventListener("drop", async (e)=>{
+  e.preventDefault();
+  const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+  if (!f) return;
+  const name = f.name.toLowerCase();
+  try {
+    let text = null;
+    if (name.endsWith(".docx")) text = await readDocxText(await f.arrayBuffer());
+    else if (name.endsWith(".txt")) text = (await f.text()).trim();
+    if (text){ FRAGMENT_TEXT = text; renderProjection(text); renderModal(text); toast("已读取：" + f.name); }
+  } catch(err){ toast("读取失败：" + err.message); }
+});
+
+/* ============================================================
+ * 启动
+ * ============================================================ */
+window.addEventListener("load", ()=>{
+  applyConfig();
+  // 尝试页面加载即播放音乐（若被浏览器拦截，将在首次点击时播放）
+  ensureMusic();
+  for (let i = 0; i < 6; i++) setTimeout(spawnStar, i * 160);
+  starTimer = setTimeout(spawnStar, 1200);
+  setTimeout(()=>showHint("点击任意位置"), 900);
+});
+
+/* ============================================================
+ * 调试钩子（可删除，不影响功能）
+ * ============================================================ */
+window.__dbg = () => ({
+  state, busy, fragmentLanded, modalOpen,
+  sceneVisible: sceneEl.classList.contains("visible"),
+  starsGone: starsEl.classList.contains("gone"),
+  personAttacking: personEl.classList.contains("attacking"),
+  fragVisible: fragWrap.classList.contains("visible"),
+  fragLanded: fragWrap.classList.contains("landed"),
+  fragFlying: fragWrap.classList.contains("flying"),
+  projectionShown: projectionEl.classList.contains("show"),
+  backpackShown: backpackEl.classList.contains("show"),
+  modalOpenClass: modalEl.classList.contains("open"),
+  music: { paused: bgm.paused, currentTime: bgm.currentTime, ready: bgm.readyState, src: bgm.src },
+  fragmentTextLen: FRAGMENT_TEXT.length,
+  projParas: projectionEl.querySelectorAll(".proj-p").length
+});
+</script>
+</body>
+</html>
