@@ -73,7 +73,8 @@
   @keyframes flashFade { 0%{opacity:.9;} 100%{opacity:0;} }
 
   /* ============ 碎片（状态2/3/4） ============ */
-  #fragment-wrap { position:absolute; left:50%; top:50%; width:0; height:0; z-index:10; opacity:0; pointer-events:none; }
+  #fragment-wrap { position:absolute; left:50%; top:50%; width:0; height:0; z-index:10; opacity:0; pointer-events:none; transition:opacity .35s ease; }
+  #fragment-wrap.hidden { opacity:0 !important; pointer-events:none !important; }
   #fragment-wrap.visible { opacity:1; pointer-events:auto; }
   #fragment-wrap.dropping { animation:fragDrop 1.15s cubic-bezier(.28,.55,.45,1) forwards; }
   #fragment-wrap.dropping #fragment { animation:tremble 1.15s ease-out forwards; }
@@ -621,6 +622,7 @@ function enterProject(){
     renderProjection(text);
     projectionEl.classList.add("show");
     beamEl.classList.add("show");
+    fragWrap.classList.add("hidden"); // 投影文字出现时，碎片隐去，避免遮挡阅读
   });
   showHint("点击空白处收下碎片");
   setTimeout(()=>{ busy = false; }, 750);
@@ -634,23 +636,30 @@ function enterPack(){
   projectionEl.classList.remove("show");
   beamEl.classList.remove("show");
 
-  // 2) 碎片弧线飞向右上角（0.6s, ease-in-out），背包出现
+  // 2) 文字消失后，碎片在屏幕中央重新浮现（0.35s），背包同时出现
   setTimeout(()=>{
+    fragWrap.classList.remove("hidden");
     backpackEl.classList.add("show");
     packLabel.classList.add("show");
-    fragWrap.classList.remove("landed");
-    fragWrap.classList.add("flying");
 
-    // 3) 碎片缩小消失，背包闪烁
+    // 3) 碎片弧线飞向右上角（0.6s, ease-in-out）
     setTimeout(()=>{
-      fragWrap.classList.add("collected");
-      backpackEl.classList.remove("flash"); void backpackEl.offsetWidth;
-      backpackEl.classList.add("flash");
-      setTimeout(()=>{ backpackEl.classList.remove("flash"); }, 650);
-    }, 600);
+      fragWrap.classList.remove("landed");
+      fragWrap.classList.add("flying");
+
+      // 4) 碎片缩小收入背包，背包闪烁；小人恢复行走
+      setTimeout(()=>{
+        fragWrap.classList.add("collected");
+        backpackEl.classList.remove("flash"); void backpackEl.offsetWidth;
+        backpackEl.classList.add("flash");
+        setTimeout(()=>{ backpackEl.classList.remove("flash"); }, 650);
+        personEl.classList.remove("attacking");
+        personWrap.classList.remove("attacking");
+      }, 600);
+    }, 380);
   }, 320);
 
-  setTimeout(()=>{ busy = false; showHint("点击背包查看"); }, 1400);
+  setTimeout(()=>{ busy = false; showHint("点击背包查看"); }, 1700);
 }
 
 /* ============================================================
