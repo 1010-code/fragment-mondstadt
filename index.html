@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>欧西匹克特秀</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html,body { width:100%; height:100%; overflow:hidden; }
@@ -122,6 +125,54 @@
            color:#d9ecff; font-size:14px; letter-spacing:.12em; opacity:0; transition:opacity .3s ease;
            pointer-events:none; white-space:nowrap; }
   #toast.show { opacity:1; }
+
+  /* ============ 赛博朋克说话场景（点击背包触发） ============ */
+  #cyber-scene { position:fixed; inset:0; z-index:90; opacity:0; pointer-events:none; transition:opacity .4s ease;
+                 background:
+                   radial-gradient(ellipse at 20% 30%, rgba(0,240,255,.16), transparent 55%),
+                   radial-gradient(ellipse at 85% 75%, rgba(255,0,200,.13), transparent 55%),
+                   #0a0e17;
+                 overflow:hidden; }
+  #cyber-scene.open { opacity:1; pointer-events:auto; }
+  #cyber-scene::before { content:''; position:absolute; inset:0;
+    background-image:
+      linear-gradient(rgba(0,240,255,.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,240,255,.06) 1px, transparent 1px);
+    background-size:44px 44px; }
+  #cyber-scene::after { content:''; position:absolute; inset:0; pointer-events:none;
+    background:repeating-linear-gradient(0deg, rgba(0,0,0,0) 0 3px, rgba(0,240,255,.03) 3px 4px); }
+  .cyber-corner { position:absolute; width:46px; height:46px; border:0 solid #00f0ff; z-index:5;
+                  filter:drop-shadow(0 0 6px #00f0ff); }
+  .cyber-corner.tl { top:18px; left:18px; border-top-width:3px; border-left-width:3px; }
+  .cyber-corner.tr { top:18px; right:18px; border-top-width:3px; border-right-width:3px; }
+  .cyber-corner.bl { bottom:25vh; left:18px; border-bottom-width:3px; border-left-width:3px; }
+  .cyber-corner.br { bottom:25vh; right:18px; border-bottom-width:3px; border-right-width:3px; }
+  .cyber-figure-wrap { position:absolute; left:4vw; bottom:25vh; width:24vw; min-width:190px; max-width:280px;
+                       height:72vh; display:flex; align-items:flex-end; justify-content:center;
+                       filter:drop-shadow(0 0 20px #00f0ff); }
+  .cyber-figure { width:100%; height:auto; }
+  .cyber-halo { position:absolute; left:50%; bottom:6%; width:130%; height:40%; transform:translateX(-50%);
+                background:radial-gradient(ellipse, rgba(0,240,255,.22), transparent 65%); pointer-events:none; }
+  .cyber-scan { position:absolute; left:-10%; right:-10%; height:4px;
+                background:linear-gradient(90deg, transparent, rgba(0,240,255,.5), transparent);
+                animation:cyberScan 3s linear infinite; pointer-events:none; }
+  @keyframes cyberScan { 0%{ top:10%; } 50%{ top:80%; } 100%{ top:10%; } }
+  .cyber-dialog { position:absolute; left:0; right:0; bottom:0; height:25vh; z-index:6;
+                  background:rgba(10,14,23,.92); border-top:1px solid #00f0ff;
+                  box-shadow:0 0 20px #00f0ff, inset 0 0 30px rgba(0,240,255,.06);
+                  animation:cyberBorder 2.4s ease-in-out infinite; padding:2.6vh 3vw 1.6vh 3vw; cursor:pointer; }
+  @keyframes cyberBorder { 0%,100%{ box-shadow:0 0 16px #00f0ff, inset 0 0 30px rgba(0,240,255,.06);}
+                           50%{ box-shadow:0 0 32px #00f0ff, inset 0 0 36px rgba(0,240,255,.10);} }
+  .cyber-name { font-family:'Orbitron','Share Tech Mono',monospace; color:#ff00c8; font-weight:700;
+                font-size:clamp(14px,2.4vh,20px); letter-spacing:.18em; margin-bottom:1vh;
+                text-shadow:0 0 8px #ff00c8, 0 0 20px rgba(255,0,200,.6); }
+  .cyber-text { font-family:'Share Tech Mono','Orbitron',monospace; color:#e0f7fa;
+                font-size:clamp(13px,2.3vh,19px); line-height:1.8; letter-spacing:.04em; }
+  .cyber-prompt { position:absolute; right:2.5vw; bottom:1.6vh; color:#00f0ff;
+                  font-family:'Orbitron',monospace; font-size:18px;
+                  animation:cyberBlink 1s steps(2) infinite; text-shadow:0 0 8px #00f0ff; }
+  @keyframes cyberBlink { 0%,49%{ opacity:1;} 50%,100%{ opacity:0;} }
+
 </style>
 </head>
 <body>
@@ -169,6 +220,40 @@
   </div>
 
   <div id="toast"></div>
+
+  <!-- 赛博朋克说话场景（点击背包触发） -->
+  <div id="cyber-scene">
+    <div class="cyber-corner tl"></div><div class="cyber-corner tr"></div>
+    <div class="cyber-corner bl"></div><div class="cyber-corner br"></div>
+    <div class="cyber-figure-wrap">
+      <svg class="cyber-figure" viewBox="0 0 220 360" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <g fill="none" stroke="#00f0ff" stroke-width="3" opacity=".9">
+          <circle cx="110" cy="56" r="28"/>
+          <path d="M110 84 v26"/>
+          <path d="M66 160 q44 -34 88 0 l16 92 h-120 z"/>
+          <path d="M66 160 q-34 46 -22 100"/>
+          <path d="M154 160 q34 46 22 100"/>
+          <path d="M66 175 q30 14 44 8"/>
+          <path d="M154 175 q-30 14 -44 8"/>
+        </g>
+        <g fill="rgba(0,240,255,.14)">
+          <circle cx="110" cy="56" r="28"/>
+          <path d="M66 160 q44 -34 88 0 l16 92 h-120 z"/>
+        </g>
+        <g stroke="rgba(255,0,200,.55)" stroke-width="2" fill="none">
+          <path d="M98 44 h24 M98 56 h18 M98 68 h24"/>
+          <path d="M84 210 h52 M92 228 h36 M88 246 h44"/>
+        </g>
+      </svg>
+      <div class="cyber-halo"></div>
+      <div class="cyber-scan"></div>
+    </div>
+    <div class="cyber-dialog" id="cyber-dialog">
+      <div class="cyber-name" id="cyber-name">数据终端</div>
+      <div class="cyber-text" id="cyber-text"></div>
+      <div class="cyber-prompt">>></div>
+    </div>
+  </div>
 
 <script>
 "use strict";
@@ -562,7 +647,7 @@ window.addEventListener("keydown", (e)=>{ if (e.key === "Escape") closeModal(); 
 
 /* 背包点击（在 PACK 后可用） */
 document.addEventListener("pointerdown", (e)=>{
-  if (state === State.PLAY && !dropActive && !modalOpen && e.target.closest("#backpack")) openModal();
+  if (state === State.PLAY && !dropActive && !modalOpen && e.target.closest("#backpack")) openCyber();
 });
 
 /* ============================================================
@@ -591,6 +676,45 @@ function syncDbg(){
 /* ============================================================
  * 启动
  * ============================================================ */
+
+/* ============================================================
+ * 赛博朋克说话场景（点击背包触发）
+ * ============================================================ */
+const cyberDialogues = [
+  { name: "数据终端", text: ">> 链接已建立。意识上传完成，欢迎来到新上海2049。" },
+  { name: "神秘黑客", text: "别出声……你的信号被追踪了。还记得你的代号吗？" },
+  { name: "系统警告", text: "⚠️ 警告：检测到非法入侵协议。" },
+  { name: "神秘黑客", text: "别理那个弹窗。快说，你是\u2018夜枭\u2019还是\u2018幽灵\u2019？" },
+  { name: "数据终端", text: "……身份识别失败。点击继续，重新连接。" }
+];
+let cyberOpen = false, cyberIdx = 0;
+const cyberScene = $("cyber-scene"), cyberName = $("cyber-name"), cyberText = $("cyber-text");
+function openCyber(){
+  if (cyberOpen || modalOpen) return;
+  cyberOpen = true; cyberIdx = 0;
+  renderCyber();
+  cyberScene.classList.add("open");
+}
+function closeCyber(){
+  cyberOpen = false;
+  cyberScene.classList.remove("open");
+}
+function renderCyber(){
+  const d = cyberDialogues[cyberIdx];
+  cyberName.textContent = d.name;
+  cyberText.textContent = d.text;
+}
+cyberScene.addEventListener("pointerdown", ()=>{
+  if (!cyberOpen) return;
+  cyberIdx++;
+  if (cyberIdx >= cyberDialogues.length){
+    closeCyber();
+    openModal(); // 对话结束，打开海螺弹窗
+  } else {
+    renderCyber();
+  }
+});
+
 window.addEventListener("load", ()=>{
   applyConfig();
   initDropOrder();
