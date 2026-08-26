@@ -150,26 +150,20 @@
                 opacity:0; transition:opacity .4s ease; z-index:20; pointer-events:none; }
   #pack-label.show { opacity:1; }
 
-  /* ============ 提示 / 提示条 ============ */
-  #hint { position:fixed; bottom:28px; left:50%; transform:translateX(-50%); z-index:30; font-size:14px;
-          letter-spacing:.28em; color:rgba(230,244,255,.6); text-shadow:0 0 12px rgba(120,185,255,.7);
-          opacity:0; transition:opacity .6s ease; pointer-events:none; white-space:nowrap; }
-  #hint.show { opacity:1; }
 
-  #caption { position:fixed; left:50%; top:calc(50% + 78px); transform:translateX(-50%); z-index:12;
-             font-size:clamp(15px,2.2vh,19px); letter-spacing:.3em; color:rgba(235,248,255,.95);
-             text-shadow:0 0 16px rgba(150,210,255,.95), 0 0 36px rgba(90,150,255,.55);
-             opacity:0; pointer-events:none; white-space:nowrap; }
-  #caption.flash { animation:captionFlash .6s ease-in-out forwards; }
-  @keyframes captionFlash { 0%{ opacity:0; transform:translateX(-50%) translateY(8px);}
-                            22%{ opacity:1; transform:translateX(-50%) translateY(0);}
-                            72%{ opacity:1;}
-                            100%{ opacity:0; transform:translateX(-50%) translateY(-6px);} }
   #toast { position:fixed; top:22%; left:50%; transform:translate(-50%,-50%); z-index:70; padding:12px 22px;
            border-radius:30px; background:rgba(10,20,40,.85); border:1px solid rgba(130,190,255,.4);
            color:#d9ecff; font-size:14px; letter-spacing:.12em; opacity:0; transition:opacity .3s ease;
            pointer-events:none; white-space:nowrap; }
   #toast.show { opacity:1; }
+
+  /* 收包10秒后：小人向右跑出画面 */
+  #person-wrap.running-away { animation:runAway 3.6s linear forwards; }
+  @keyframes runAway { from{ transform:translate(-50%,-100%);} to{ transform:translate(105vw,-100%);} }
+
+  /* 黑屏 */
+  #blackout { position:fixed; inset:0; background:#000; z-index:80; opacity:0; pointer-events:none; transition:opacity 1s ease; }
+  #blackout.show { opacity:1; pointer-events:auto; }
 
   /* ============ 扩散光芒（状态0→1） ============ */
   #reveal-glow { position:fixed; width:46vmin; height:46vmin; margin:-23vmin 0 0 -23vmin; border-radius:50%; z-index:5;
@@ -237,15 +231,14 @@
   <div id="light-beam"></div>
     <div id="projection"></div>
 
-  <!-- 碎片文案（闪现1秒） -->
-  <div id="caption">世界上最坚硬的是泪水</div>
+
 
   <!-- 背包 -->
   <div id="backpack">🎒</div>
 
-  <!-- 提示 -->
-  <div id="hint"></div>
   <div id="toast"></div>
+  <!-- 黑屏（小人跑出画面后） -->
+  <div id="blackout"></div>
 
   <!-- 弹窗 -->
   <div id="modal">
@@ -288,14 +281,16 @@ const State = { BOOT:0, ROAD:1, BURST:2, PROJECT:3, PACK:4 };
 let state = State.BOOT;
 let busy = false;            // 防抖：状态切换进行中
 let fragmentLanded = false;
+let runawayStarted = false;
+let runawayTimer = null;
 let modalOpen = false;
 
 const $ = (id) => document.getElementById(id);
 const starsEl = $("bg-stars"), sceneEl = $("scene"), personEl = $("person"),
       personWrap = $("person-wrap"),
       fragWrap = $("fragment-wrap"), projectionEl = $("projection"),
-      beamEl = $("light-beam"), backpackEl = $("backpack"), captionEl = $("caption"),
-      hintEl = $("hint"), toastEl = $("toast"), modalEl = $("modal"),
+      beamEl = $("light-beam"), backpackEl = $("backpack"), blackoutEl = $("blackout"),
+      toastEl = $("toast"), modalEl = $("modal"),
       modalText = modalEl.querySelector(".modal-text"), revealGlow = $("reveal-glow");
 
 function syncDbg(){ document.body.dataset.state = state; document.body.dataset.busy = busy ? "1" : "0"; }
@@ -561,13 +556,6 @@ function stopStars(){
 /* ============================================================
  * 提示
  * ============================================================ */
-let hintTimer = null;
-function showHint(text, ms){
-  if (hintTimer) clearTimeout(hintTimer);
-  hintEl.textContent = text;
-  hintEl.classList.add("show");
-  if (ms !== 0) hintTimer = setTimeout(()=>hintEl.classList.remove("show"), ms || 2600);
-}
 function toast(text){
   toastEl.textContent = text;
   toastEl.classList.add("show");
@@ -590,7 +578,7 @@ function enterRoad(){
   stopStars();
   setTimeout(()=>{ revealGlow.classList.remove("expand"); }, 3300);
 
-  setTimeout(()=>{ state = State.ROAD; busy = false; syncDbg(); showHint("点击小人"); }, 3100);
+  setTimeout(()=>{ state = State.ROAD; busy = false; syncDbg(); }, 3100);
 }
 
 function enterBurst(){
@@ -607,8 +595,6 @@ function enterBurst(){
   // 3) 碎片出现：背景模糊（仅碎片清晰），下方文案闪现1秒，随后掉落（震颤）
   setTimeout(()=>{
     sceneEl.classList.add("blurred");
-    captionEl.classList.remove("flash"); void captionEl.offsetWidth;
-    captionEl.classList.add("flash");
     fragWrap.classList.remove("landed","flying","collected");
     fragWrap.classList.add("visible","dropping");
   }, 320);
@@ -620,7 +606,6 @@ function enterBurst(){
     fragmentLanded = true;
     busy = false;
     syncDbg();
-    showHint("点击碎片");
   }, 1600);
 }
 
@@ -635,7 +620,6 @@ function enterProject(){
     beamEl.classList.add("show");
     fragWrap.classList.add("hidden"); // 投影文字出现时，碎片隐去，避免遮挡阅读
   });
-  showHint("点击空白处收下碎片");
   setTimeout(()=>{ busy = false; }, 750);
 }
 
@@ -670,7 +654,10 @@ function enterPack(){
     }, 380);
   }, 320);
 
-  setTimeout(()=>{ busy = false; hintEl.classList.remove("show"); }, 1700);
+  setTimeout(()=>{
+    busy = false;
+    runawayTimer = setTimeout(()=>{ if (!runawayStarted) startRunaway(); }, 10000);
+  }, 1700);
 }
 
 /* 全部结束后，点击小人再次挥击 */
@@ -684,6 +671,14 @@ function replaySlam(){
     personWrap.classList.remove("attacking");
     busy = false;
   }, 1400);
+}
+
+/* 收包10秒后：小人一直向右跑出画面，然后全部黑屏 */
+function startRunaway(){
+  if (runawayStarted) return;
+  runawayStarted = true;
+  personWrap.classList.add("running-away");
+  setTimeout(()=>{ blackoutEl.classList.add("show"); }, 3600);
 }
 
 /* ============================================================
@@ -750,7 +745,6 @@ window.addEventListener("load", ()=>{
   ensureMusic();
   for (let i = 0; i < 6; i++) setTimeout(spawnStar, i * 160);
   starTimer = setTimeout(spawnStar, 1200);
-  setTimeout(()=>showHint("点击任意位置"), 900);
 });
 
 /* ============================================================
