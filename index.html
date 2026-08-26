@@ -89,10 +89,10 @@
   /* ============ 扩散光芒（状态0→1） ============ */
   #reveal-glow { position:fixed; width:46vmin; height:46vmin; margin:-23vmin 0 0 -23vmin; border-radius:50%; z-index:5;
                  opacity:0; pointer-events:none;
-                 background:radial-gradient(circle, rgba(255,255,255,.96) 0%, rgba(190,222,255,.65) 28%,
-                                            rgba(120,175,255,.3) 52%, transparent 72%); }
+                 background:radial-gradient(circle, rgba(255,255,255,.55) 0%, rgba(190,222,255,.35) 30%,
+                                            rgba(120,175,255,.16) 55%, transparent 75%); }
   #reveal-glow.expand { animation:glowExpand 1.8s ease-out forwards; }
-  @keyframes glowExpand { 0%{ opacity:0; transform:scale(0);} 8%{ opacity:1;} 85%{ opacity:.6;} 100%{ opacity:0; transform:scale(85);} }
+  @keyframes glowExpand { 0%{ opacity:0; transform:scale(0);} 10%{ opacity:.75;} 80%{ opacity:.3;} 100%{ opacity:0; transform:scale(85);} }
 
   /* ============ 弹窗 ============ */
   #modal { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:60;
