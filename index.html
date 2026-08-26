@@ -162,7 +162,7 @@
   <div id="modal">
     <div class="modal-card">
       <button class="modal-close" title="关闭">✕</button>
-      <div class="modal-title">背包</div>
+      <div class="modal-title">海螺</div>
       <div class="modal-sub" id="bag-sub">已收集 0 / 9 个物品</div>
       <div class="bag-grid" id="bag-grid"></div>
     </div>
@@ -511,7 +511,7 @@ function startRunaway(){
 function openModal(){
   if (modalOpen) return;
   modalOpen = true;
-  $("bag-sub").textContent = "已收集 " + collected.length + " / 9 个物品";
+  $("bag-sub").textContent = "已收集产品：" + collected.length + "/9";
   const grid = $("bag-grid");
   grid.innerHTML = "";
   if (collected.length === 0){
