@@ -19,7 +19,7 @@
 
   /* ============ 场景 ============ */
   #scene { position:fixed; inset:0; z-index:2; opacity:0; transition:opacity 2.6s ease, filter 1.2s ease; }
-  #scene.blurred { filter:blur(16px); }
+  #scene.blurred { filter:blur(20px); }
   #scene.visible { opacity:1; }
   #ground { position:absolute; left:0; right:0; top:70%; height:30vh;
             background:linear-gradient(to bottom, rgba(25,36,58,.0), rgba(8,14,26,.55)); }
@@ -101,12 +101,12 @@
              background:linear-gradient(115deg, transparent 32%, rgba(255,255,255,.75) 46%, rgba(255,255,255,.25) 54%, transparent 66%);
              animation:shine 2.2s ease-in-out infinite; }
   @keyframes shine { 0%{ transform:translateX(-90%);} 60%,100%{ transform:translateX(90%);} }
-  #fragment-glow { position:absolute; left:-70px; top:-70px; width:140px; height:140px; border-radius:50%;
+  #fragment-glow { position:absolute; left:-50px; top:-50px; width:100px; height:100px; border-radius:50%;
                    background:radial-gradient(circle, rgba(90,180,255,.35), transparent 65%);
                    animation:glowPulse 2.4s ease-in-out infinite; }
   @keyframes glowPulse { 0%,100%{ opacity:.5; transform:scale(.9);} 50%{ opacity:1; transform:scale(1.1);} }
 
-  #fragment.img-mode { background:none; clip-path:none; box-shadow:none; width:110px; height:110px; left:-55px; top:-55px; }
+  #fragment.img-mode { background:none; clip-path:none; box-shadow:none; width:80px; height:80px; left:-40px; top:-40px; }
   #fragment.img-mode::after { display:none; }
   #fragment.img-mode img { width:100%; height:100%; object-fit:contain; display:block;
                            filter:drop-shadow(0 0 16px rgba(140,210,255,.65)); }
@@ -126,11 +126,11 @@
                 opacity:0; transition:opacity .6s ease; }
   #light-beam.show { opacity:1; }
   #projection { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:min(700px,88vw);
-                max-height:62vh; overflow-y:auto; z-index:9; opacity:0; transition:opacity .3s ease;
+                max-height:62vh; overflow-y:auto; z-index:9; opacity:0; pointer-events:none; transition:opacity .3s ease;
                 padding:30px 26px; text-align:left; cursor:default;
                 background:radial-gradient(closest-side, rgba(80,160,255,.13), transparent 72%);
                 scrollbar-width:thin; scrollbar-color:rgba(120,180,255,.4) transparent; }
-  #projection.show { opacity:1; }
+  #projection.show { opacity:1; pointer-events:auto; }
   .proj-p { font-size:clamp(14px,1.9vh,18px); line-height:2.05; letter-spacing:.05em; color:rgba(198,226,255,.94);
             text-shadow:0 0 12px rgba(115,185,255,.95), 0 0 34px rgba(70,135,255,.55); filter:blur(.5px);
             animation:textProject 1.15s ease-out both; }
@@ -160,7 +160,7 @@
              font-size:clamp(15px,2.2vh,19px); letter-spacing:.3em; color:rgba(235,248,255,.95);
              text-shadow:0 0 16px rgba(150,210,255,.95), 0 0 36px rgba(90,150,255,.55);
              opacity:0; pointer-events:none; white-space:nowrap; }
-  #caption.flash { animation:captionFlash 1s ease-in-out forwards; }
+  #caption.flash { animation:captionFlash .6s ease-in-out forwards; }
   @keyframes captionFlash { 0%{ opacity:0; transform:translateX(-50%) translateY(8px);}
                             22%{ opacity:1; transform:translateX(-50%) translateY(0);}
                             72%{ opacity:1;}
@@ -222,17 +222,7 @@
     <!-- 行走小人 -->
     <div id="person-wrap">
       <div id="person-shadow"></div>
-      <div id="person">
-        <div class="p-hair"></div>
-        <div class="p-head"></div>
-        <div class="p-torso"></div>
-        <div class="p-arm left"></div>
-        <div class="p-arm right"></div>
-        <div class="p-leg left"></div>
-        <div class="p-leg right"></div>
-        <div class="sword"></div>
-      </div>
-      <div id="burst">💥</div>
+      <div id="person"></div>
     </div>
 
   </main>
@@ -249,9 +239,6 @@
 
   <!-- 碎片文案（闪现1秒） -->
   <div id="caption">世界上最坚硬的是泪水</div>
-
-  <!-- 白闪 -->
-  <div id="flash"></div>
 
   <!-- 背包 -->
   <div id="backpack">🎒</div>
@@ -305,7 +292,7 @@ let modalOpen = false;
 
 const $ = (id) => document.getElementById(id);
 const starsEl = $("bg-stars"), sceneEl = $("scene"), personEl = $("person"),
-      personWrap = $("person-wrap"), burstEl = $("burst"), flashEl = $("flash"),
+      personWrap = $("person-wrap"),
       fragWrap = $("fragment-wrap"), projectionEl = $("projection"),
       beamEl = $("light-beam"), backpackEl = $("backpack"), captionEl = $("caption"),
       hintEl = $("hint"), toastEl = $("toast"), modalEl = $("modal"),
@@ -339,7 +326,7 @@ function applyConfig(){
     f.innerHTML = '<img src="' + CONFIG.FRAGMENT_IMG + '" alt="碎片" draggable="false">';
   }
   if (CONFIG.BACKPACK_IMG){
-    backpackEl.innerHTML = '<img src="' + CONFIG.BACKPACK_IMG + '" alt="背包" style="width:56px;height:56px;object-fit:contain;display:block;filter:drop-shadow(0 0 10px rgba(120,190,255,.8));">';
+    backpackEl.innerHTML = '<img src="' + CONFIG.BACKPACK_IMG + '" alt="背包" style="width:40px;height:40px;object-fit:contain;display:block;filter:drop-shadow(0 0 10px rgba(120,190,255,.8));">';
   }
 }
 
@@ -614,10 +601,6 @@ function enterBurst(){
   personEl.classList.add("attacking");
   personWrap.classList.add("attacking");
 
-  // 白闪 + 💥 特效
-  flashEl.classList.remove("on"); void flashEl.offsetWidth; flashEl.classList.add("on");
-  burstEl.classList.remove("pop"); void burstEl.offsetWidth; burstEl.classList.add("pop");
-
   // 2) 玻璃碎裂音效（与动作切换同时）
   setTimeout(()=>playGlassBreak(), 60);
 
@@ -690,6 +673,19 @@ function enterPack(){
   setTimeout(()=>{ busy = false; hintEl.classList.remove("show"); }, 1700);
 }
 
+/* 全部结束后，点击小人再次挥击 */
+function replaySlam(){
+  if (busy) return;
+  busy = true;
+  personEl.classList.add("attacking");
+  personWrap.classList.add("attacking");
+  setTimeout(()=>{
+    personEl.classList.remove("attacking");
+    personWrap.classList.remove("attacking");
+    busy = false;
+  }, 1400);
+}
+
 /* ============================================================
  * 弹窗
  * ============================================================ */
@@ -720,7 +716,8 @@ document.addEventListener("pointerdown", (e)=>{
     case State.ROAD:    if (e.target.closest("#person-wrap")) enterBurst(); break;
     case State.BURST:   if (fragmentLanded && e.target.closest("#fragment-wrap")) enterProject(); break;
     case State.PROJECT: if (!e.target.closest("#projection")) enterPack(); break;
-    case State.PACK:    if (e.target.closest("#backpack")) openModal(); break;
+    case State.PACK:    if (e.target.closest("#person-wrap")) replaySlam();
+                        else if (e.target.closest("#backpack")) openModal(); break;
   }
 });
 
