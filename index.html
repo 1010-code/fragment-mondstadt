@@ -18,7 +18,7 @@
   @keyframes twinkle { 0%{opacity:0; transform:scale(.6);} 30%{opacity:.6; transform:scale(1);} 100%{opacity:0; transform:scale(.7);} }
 
   /* ============ 场景 ============ */
-  #scene { position:fixed; inset:0; z-index:2; opacity:0; transition:opacity 2.6s ease; }
+  #scene { position:fixed; inset:0; z-index:2; opacity:0; transition:opacity 1.5s ease; }
   #scene.visible { opacity:1; }
   #ground { position:absolute; left:0; right:0; top:70%; height:30vh;
             background:linear-gradient(to bottom, rgba(25,36,58,.0), rgba(8,14,26,.55)); }
@@ -91,7 +91,7 @@
                  opacity:0; pointer-events:none;
                  background:radial-gradient(circle, rgba(255,255,255,.96) 0%, rgba(190,222,255,.65) 28%,
                                             rgba(120,175,255,.3) 52%, transparent 72%); }
-  #reveal-glow.expand { animation:glowExpand 3s ease-out forwards; }
+  #reveal-glow.expand { animation:glowExpand 1.8s ease-out forwards; }
   @keyframes glowExpand { 0%{ opacity:0; transform:scale(0);} 8%{ opacity:1;} 85%{ opacity:.6;} 100%{ opacity:0; transform:scale(85);} }
 
   /* ============ 弹窗 ============ */
@@ -312,14 +312,14 @@ function enterPlay(){
   revealGlow.classList.add("expand");
   sceneEl.classList.add("visible");
   stopStars();
-  setTimeout(()=>{ revealGlow.classList.remove("expand"); }, 3300);
+  setTimeout(()=>{ revealGlow.classList.remove("expand"); }, 2100);
 
   setTimeout(()=>{
     state = State.PLAY;
     busy = false;
     syncDbg();
     startIceScheduler();
-  }, 3100);
+  }, 2000);
 }
 
 /* ============================================================
