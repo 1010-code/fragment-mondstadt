@@ -147,10 +147,10 @@
   .cyber-corner.tr { top:18px; right:18px; border-top-width:3px; border-right-width:3px; }
   .cyber-corner.bl { bottom:25vh; left:18px; border-bottom-width:3px; border-left-width:3px; }
   .cyber-corner.br { bottom:25vh; right:18px; border-bottom-width:3px; border-right-width:3px; }
-  .cyber-figure-wrap { position:absolute; left:4vw; bottom:25vh; width:24vw; min-width:190px; max-width:280px;
-                       height:72vh; display:flex; align-items:flex-end; justify-content:center;
+  .cyber-figure-wrap { position:absolute; left:12vw; bottom:0; width:34vw; max-width:360px; height:92vh;
+                       display:flex; align-items:flex-end; justify-content:center;
                        filter:drop-shadow(0 0 20px #00f0ff); }
-  .cyber-figure { width:100%; height:auto; }
+  .cyber-figure { width:auto; height:92vh; max-width:100%; object-fit:contain; }
   .cyber-halo { position:absolute; left:50%; bottom:6%; width:130%; height:40%; transform:translateX(-50%);
                 background:radial-gradient(ellipse, rgba(0,240,255,.22), transparent 65%); pointer-events:none; }
   .cyber-scan { position:absolute; left:-10%; right:-10%; height:4px;
@@ -160,14 +160,14 @@
   .cyber-dialog { position:absolute; left:0; right:0; bottom:0; height:25vh; z-index:6;
                   background:rgba(10,14,23,.92); border-top:1px solid #00f0ff;
                   box-shadow:0 0 20px #00f0ff, inset 0 0 30px rgba(0,240,255,.06);
-                  animation:cyberBorder 2.4s ease-in-out infinite; padding:2.6vh 3vw 1.6vh 3vw; cursor:pointer; }
+                  animation:cyberBorder 2.4s ease-in-out infinite; padding:3vh 4vw 2vh 12vw; cursor:pointer; }
   @keyframes cyberBorder { 0%,100%{ box-shadow:0 0 16px #00f0ff, inset 0 0 30px rgba(0,240,255,.06);}
                            50%{ box-shadow:0 0 32px #00f0ff, inset 0 0 36px rgba(0,240,255,.10);} }
   .cyber-name { font-family:'Orbitron','Share Tech Mono',monospace; color:#ff00c8; font-weight:700;
-                font-size:clamp(14px,2.4vh,20px); letter-spacing:.18em; margin-bottom:1vh;
+                font-size:clamp(18px,3.2vh,28px); letter-spacing:.18em; margin-bottom:1vh;
                 text-shadow:0 0 8px #ff00c8, 0 0 20px rgba(255,0,200,.6); }
   .cyber-text { font-family:'Share Tech Mono','Orbitron',monospace; color:#e0f7fa;
-                font-size:clamp(13px,2.3vh,19px); line-height:1.8; letter-spacing:.04em; }
+                font-size:clamp(16px,2.9vh,26px); line-height:1.8; letter-spacing:.04em; }
   .cyber-prompt { position:absolute; right:2.5vw; bottom:1.6vh; color:#00f0ff;
                   font-family:'Orbitron',monospace; font-size:18px;
                   animation:cyberBlink 1s steps(2) infinite; text-shadow:0 0 8px #00f0ff; }
@@ -226,25 +226,7 @@
     <div class="cyber-corner tl"></div><div class="cyber-corner tr"></div>
     <div class="cyber-corner bl"></div><div class="cyber-corner br"></div>
     <div class="cyber-figure-wrap">
-      <svg class="cyber-figure" viewBox="0 0 220 360" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <g fill="none" stroke="#00f0ff" stroke-width="3" opacity=".9">
-          <circle cx="110" cy="56" r="28"/>
-          <path d="M110 84 v26"/>
-          <path d="M66 160 q44 -34 88 0 l16 92 h-120 z"/>
-          <path d="M66 160 q-34 46 -22 100"/>
-          <path d="M154 160 q34 46 22 100"/>
-          <path d="M66 175 q30 14 44 8"/>
-          <path d="M154 175 q-30 14 -44 8"/>
-        </g>
-        <g fill="rgba(0,240,255,.14)">
-          <circle cx="110" cy="56" r="28"/>
-          <path d="M66 160 q44 -34 88 0 l16 92 h-120 z"/>
-        </g>
-        <g stroke="rgba(255,0,200,.55)" stroke-width="2" fill="none">
-          <path d="M98 44 h24 M98 56 h18 M98 68 h24"/>
-          <path d="M84 210 h52 M92 228 h36 M88 246 h44"/>
-        </g>
-      </svg>
+      <img class="cyber-figure" src="portrait.jpg" alt="立绘" draggable="false">
       <div class="cyber-halo"></div>
       <div class="cyber-scan"></div>
     </div>
@@ -647,7 +629,10 @@ window.addEventListener("keydown", (e)=>{ if (e.key === "Escape") closeModal(); 
 
 /* 背包点击（在 PACK 后可用） */
 document.addEventListener("pointerdown", (e)=>{
-  if (state === State.PLAY && !dropActive && !modalOpen && e.target.closest("#backpack")) openCyber();
+  if (state === State.PLAY && !dropActive && !modalOpen && e.target.closest("#backpack")){
+      if (collected.length >= 9) openCyber();
+      else openModal();
+    }
 });
 
 /* ============================================================
